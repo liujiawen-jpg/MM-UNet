@@ -3,7 +3,7 @@
 
 ### 🎉 This work is provisionally accepted by [BIBM 2025(https://biod.whu.edu.cn/bibm2025/))]!
 
-![Overview](img\Overview.jpg)
+![Overview](img/Overview.jpg)
 
 
 
