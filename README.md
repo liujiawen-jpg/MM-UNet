@@ -41,8 +41,8 @@ python setup.py install
 
 # Visual Comparisons 
 
-![Visual1](img\VS.jpg)
-![Visual2](img\ER.jpg)
+![Visual1](img/VS.jpg)
+![Visual2](img/ER.jpg)
 
 ## Notion
 
