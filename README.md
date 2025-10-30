@@ -11,7 +11,7 @@
 
 # How to run this code
 
-All of the following operations must be entered in the operating system's command line.
+All of the following operations must be entered in the operating system's command line. (Our fully code will be Coming soon)
 
 ## Get project
 
