@@ -1,8 +1,7 @@
 # MM-UNet: Morph Mamba U-shaped Convolutional Networks for Retinal Vessel Segmentation
 
-[![BIBM](https://img.shields.io/badge/MICCAI-Target_Conference-blue.svg)]([About BIBM-BIOD LAB,CS,WHU - 武汉大学医学人工智能实验室](https://biod.whu.edu.cn/bibm2025/))
 
-### 🎉 This work is provisionally accepted by [BIBM 2025]([About BIBM-BIOD LAB,CS,WHU - 武汉大学医学人工智能实验室](https://biod.whu.edu.cn/bibm2025/))!
+### 🎉 This work is provisionally accepted by [BIBM 2025(https://biod.whu.edu.cn/bibm2025/))]!
 
 ![Overview](img\Overview.jpg)
 
