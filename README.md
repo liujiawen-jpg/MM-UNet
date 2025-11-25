@@ -60,7 +60,7 @@ python3 train.py
 
 ## Notion
 
-If there are any problems, please don't hesitate to contact us by email: [a2080463892@gmail.com]
+If there are any problems, please don't hesitate to contact us by email: [202321044682@mail.scut.edu.cn]
 
 ## Acknowledgement
 
