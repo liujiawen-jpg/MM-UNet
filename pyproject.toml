@@ -1,0 +1,91 @@
+[project]
+name = "vesselseg"
+version = "0.1.0"
+description = "VesselSEG is a project dedicated to retinal vessel segmentation from fundus images, aiming for State-of-the-Art (SOTA) performance and publication at MICCAI."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT License"}
+
+authors = [
+    { name = "Yoikllong", email = "yuchenglong@e.gzhu.edu.cn" },
+    { name = "JeMing-creater", email = "jiamingliang@mail.scut.edu.cn" },
+    { name = "liujiawen-jpg", email = "jiawenliu@mail.scut.edu.cn" }
+]
+
+keywords = ["retinal vessel segmentation", "deep learning", "medical imaging", "SOTA", "MICCAI", "fundus images"]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "timm==0.9.7",
+    "objprint==0.2.3",
+    "accelerate==1.7.0",
+    "torch==2.2.0",
+    "torchvision==0.17.0",
+    "torchaudio==2.2.0",
+    "tensorboard",
+    "easydict",
+    "SimpleITK",
+    "monai",
+    "nibabel",
+    "pyyaml",
+    "opencv-python",
+    "openpyxl",
+    "scikit-learn",
+    "pandas",
+    "matplotlib",
+    "einops>=0.8.1",
+    "tqdm>=4.67.1",
+    "wandb>=0.19.11",
+    "albumentations>=2.0.8",
+    "imageio>=2.37.0",
+    "mmengine>=0.10.7",
+    "yacs>=0.1.8",
+    "setuptools==65.0.0",
+    "wheel>=0.45",
+    "ninja>=1.11.1.4",
+    "mamba-ssm",
+]
+
+[project.urls]
+Homepage = "https://xxx.com"
+Repository = "https://github.com/Yoikllong/VesselSEG"
+Issues = "https://github.com/Yoikllong/VesselSEG/issues"
+
+# Configure PyTorch sources to use CUDA 11.8 where available
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+]
+torchvision = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+]
+torchaudio = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+]
+mamba-ssm = { url = "https://github.com/state-spaces/mamba/releases/download/v2.2.4/mamba_ssm-2.2.4+cu12torch2.2cxx11abiFALSE-cp311-cp311-linux_x86_64.whl" }
+
+# Define the PyTorch indexes
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

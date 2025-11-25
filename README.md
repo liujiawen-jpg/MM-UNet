@@ -1,9 +1,13 @@
+
+
+
+
 # MM-UNet: Morph Mamba U-shaped Convolutional Networks for Retinal Vessel Segmentation
 
 
 ### 🎉 This work is provisionally accepted by [BIBM 2025]([About BIBM-BIOD LAB,CS,WHU - 武汉大学医学人工智能实验室](https://biod.whu.edu.cn/bibm2025/))!
 
-![Overview](img/Overview.jpg)
+![Overview](C:/Users/admin/Documents/GitHub/MM-UNet/img/Overview.jpg)
 
 
 
@@ -37,12 +41,22 @@ python setup.py install
 # Find the mamba_sample.py file and replace it with requirements\mamba_sample.py
 ```
 
+## Training
 
+All of the following operations must be entered in the operating system's command line.
+
+- Updating the parameters of config.yaml.
+
+-  GPU training
+
+```
+python3 train.py
+```
 
 # Visual Comparisons 
 
-![Visual1](img/VS.jpg)
-![Visual2](img/ER.jpg)
+![Visual1](C:/Users/admin/Documents/GitHub/MM-UNet/img/VS.jpg)
+![Visual2](C:/Users/admin/Documents/GitHub/MM-UNet/img/ER.jpg)
 
 ## Notion
 
