@@ -7,7 +7,7 @@
 
 ### 🎉 This work is provisionally accepted by [BIBM 2025]([About BIBM-BIOD LAB,CS,WHU - 武汉大学医学人工智能实验室](https://biod.whu.edu.cn/bibm2025/))!
 
-![Overview](C:/Users/admin/Documents/GitHub/MM-UNet/img/Overview.jpg)
+![Overview](img/Overview.jpg)
 
 
 
@@ -55,8 +55,8 @@ python3 train.py
 
 # Visual Comparisons 
 
-![Visual1](C:/Users/admin/Documents/GitHub/MM-UNet/img/VS.jpg)
-![Visual2](C:/Users/admin/Documents/GitHub/MM-UNet/img/ER.jpg)
+![Visual1](img/VS.jpg)
+![Visual2](img/ER.jpg)
 
 ## Notion
 
