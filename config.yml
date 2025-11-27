@@ -1,5 +1,5 @@
 trainer:
-  num_epochs: 300
+  num_epochs: 3000
   warmup: 2
   train_ratio: 0.8
   lr: 0.001
