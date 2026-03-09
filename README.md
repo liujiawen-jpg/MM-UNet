@@ -29,16 +29,17 @@ git clone git@https://github.com/liujiawen-jpg/MM-UNet
 ```
 cd requirements
 
-# Necessary environment requirements
-pip install -r requirements.txt
-
 # Mamba base environment
-cd /requirements/Mamba/causal-conv1d
+cd Mamba/causal-conv1d
 python setup.py install
-cd /requirements/Mamba/mamba
+cd Mamba/mamba
 python setup.py install
 # TFM method setting
 # Find the mamba_sample.py file and replace it with requirements\mamba_sample.py
+
+# other environment requirements
+cd requirements
+pip install -r requirements.txt
 ```
 
 ## Training
