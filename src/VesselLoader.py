@@ -409,13 +409,16 @@ def get_dataloader(config: EasyDict) -> Tuple[
     cfg_test_dir = getattr(dataset_params, "test_dir", None)
     cfg_image_subdir = getattr(dataset_params, "image_subdir", "input")
     cfg_label_subdir = getattr(dataset_params, "label_subdir", "label")
-    # DRIVE
-    cfg_train_label_pattern = getattr(dataset_params, "train_label_pattern", "{base_name}.png")
-    cfg_val_label_pattern = getattr(dataset_params, "val_label_pattern", "{base_name}_manual1.png")
-    # STARE
-    # cfg_train_label_pattern = getattr(dataset_params, "train_label_pattern", "{base_name}.ah.ppm")
-    # cfg_val_label_pattern = getattr(dataset_params, "val_label_pattern", "{base_name}.ah.ppm")
-    cfg_test_label_pattern = getattr(dataset_params, "test_label_pattern", cfg_val_label_pattern)
+    
+    if config.trainer.dataset_choose == 'DRIVE':
+        # DRIVE
+        cfg_train_label_pattern = getattr(dataset_params, "train_label_pattern", "{base_name}.png")
+        cfg_val_label_pattern = getattr(dataset_params, "val_label_pattern", "{base_name}_manual1.png")
+    elif config.trainer.dataset_choose == 'STARE':
+        # STARE
+        cfg_train_label_pattern = getattr(dataset_params, "train_label_pattern", "{base_name}.ah.ppm")
+        cfg_val_label_pattern = getattr(dataset_params, "val_label_pattern", "{base_name}.ah.ppm")
+        cfg_test_label_pattern = getattr(dataset_params, "test_label_pattern", cfg_val_label_pattern)
     # cfg_test_label_pattern = getattr(dataset_params, "test_label_pattern", cfg_val_label_pattern)
 
     train_loader, val_loader, test_loader = None, None, None
@@ -439,6 +442,7 @@ def get_dataloader(config: EasyDict) -> Tuple[
         print(f"{Colors.RED}Training directory not found: {train_phase_root}{Colors.END}")
 
     val_phase_root = os.path.join(data_root, cfg_val_dir)
+    print(val_phase_root)
     if os.path.isdir(val_phase_root):
         val_samples = generate_dataset_list(
             phase_root=val_phase_root, image_subdir=cfg_image_subdir,

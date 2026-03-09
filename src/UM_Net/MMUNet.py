@@ -16,8 +16,8 @@ class MMConv(nn.Module):
         extend_scope: float = 1.0,
         morph: int = 0,
         if_offset: bool = True,
-        device = "cuda",
-        num_slices=4
+        device="cuda",
+        num_slices=4,
     ):
         super().__init__()
 
@@ -25,13 +25,13 @@ class MMConv(nn.Module):
             raise ValueError("morph should be 0 or 1.")
 
         self.mamba = Mamba(
-                d_model=kernel_size, # Model dimension d_model
-                d_state=16,  # SSM state expansion factor
-                d_conv=4,    # Local convolution width
-                expand=2,    # Block expansion factor
-                bimamba_type="v1",
-                # bimamba_type="v3",   # TODO: set 154 assert bimamba_type=="v3" as none
-                nslices = num_slices
+            d_model=kernel_size,  # Model dimension d_model
+            d_state=16,  # SSM state expansion factor
+            d_conv=4,  # Local convolution width
+            expand=2,  # Block expansion factor
+            bimamba_type="v1",
+            # bimamba_type="v3",   # TODO: set 154 assert bimamba_type=="v3" as none
+            nslices=num_slices,
         )
 
         self.kernel_size = kernel_size
@@ -119,11 +119,13 @@ class MMConv(nn.Module):
             x_restored = torch.cat([x_restored, x_tail.view(B, C, 1, W)], dim=2)
 
         return x_restored
-    def get_coordinate_map_2D(self,
+
+    def get_coordinate_map_2D(
+        self,
         offset: torch.Tensor,
         morph: int,
         extend_scope: float = 1.0,
-        device = "cuda",
+        device="cuda",
     ):
         if morph not in (0, 1):
             raise ValueError("morph should be 0 or 1.")
@@ -181,7 +183,7 @@ class MMConv(nn.Module):
         y_keep, _, _, _ = self.mamba(y_keep)
         y_keep = y_keep.transpose(-1, -2)
         y_keep = self.inverse_two_row_columnwise_flatten(y_keep, width, height)
-        
+
         # Mamba
         weight = torch.nn.functional.softplus(self.altho)
         weight = torch.clamp(weight, min=0.01)
@@ -192,8 +194,8 @@ class MMConv(nn.Module):
 
         return y_coordinate_map, x_coordinate_map
 
-
-    def get_interpolated_feature(self,
+    def get_interpolated_feature(
+        self,
         input_feature: torch.Tensor,
         y_coordinate_map: torch.Tensor,
         x_coordinate_map: torch.Tensor,
@@ -205,8 +207,12 @@ class MMConv(nn.Module):
         y_max = input_feature.shape[-2] - 1
         x_max = input_feature.shape[-1] - 1
 
-        y_coordinate_map_ = self._coordinate_map_scaling(y_coordinate_map, origin=[0, y_max])
-        x_coordinate_map_ = self._coordinate_map_scaling(x_coordinate_map, origin=[0, x_max])
+        y_coordinate_map_ = self._coordinate_map_scaling(
+            y_coordinate_map, origin=[0, y_max]
+        )
+        x_coordinate_map_ = self._coordinate_map_scaling(
+            x_coordinate_map, origin=[0, x_max]
+        )
 
         y_coordinate_map_ = torch.unsqueeze(y_coordinate_map_, dim=-1)
         x_coordinate_map_ = torch.unsqueeze(x_coordinate_map_, dim=-1)
@@ -225,8 +231,8 @@ class MMConv(nn.Module):
 
         return interpolated_feature
 
-
-    def _coordinate_map_scaling(self,
+    def _coordinate_map_scaling(
+        self,
         coordinate_map: torch.Tensor,
         origin: list,
         target: list = [-1, 1],
@@ -240,7 +246,6 @@ class MMConv(nn.Module):
         coordinate_map_scaled = a + scale_factor * (coordinate_map_scaled - min)
 
         return coordinate_map_scaled
-
 
     def forward(self, input: torch.Tensor):
         # Predict offset map between [-1, 1]
@@ -274,12 +279,16 @@ class MMConv(nn.Module):
         return output
 
 
-
 class HPPF(nn.Module):
     def __init__(self, in_channels):
         super(HPPF, self).__init__()
-        self.conv2 = nn.Sequential(nn.Conv2d(in_channels, in_channels // 64, 1, 1), nn.ReLU(inplace=True))
-        self.conv1 = nn.Sequential(MMConv(in_channels, in_channels // 16, num_slices=64, kernel_size=1), nn.ReLU(inplace=True))
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels // 64, 1, 1), nn.ReLU(inplace=True)
+        )
+        self.conv1 = nn.Sequential(
+            MMConv(in_channels, in_channels // 16, num_slices=64, kernel_size=1),
+            nn.ReLU(inplace=True),
+        )
         self.avg = nn.AdaptiveAvgPool2d(1)
         self.max1 = nn.AdaptiveMaxPool2d(4)
         self.max2 = nn.AdaptiveMaxPool2d(8)
@@ -287,14 +296,17 @@ class HPPF(nn.Module):
             nn.Conv2d(in_channels, in_channels // 8, kernel_size=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels // 8, in_channels, kernel_size=1),
-            nn.Sigmoid())
-        self.feat_conv = nn.Sequential(nn.Conv2d(in_channels, in_channels // 3, 3, 1, 1),
-                                       nn.BatchNorm2d(in_channels // 3),
-                                       nn.ReLU(inplace=True))
+            nn.Sigmoid(),
+        )
+        self.feat_conv = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels // 3, 3, 1, 1),
+            nn.BatchNorm2d(in_channels // 3),
+            nn.ReLU(inplace=True),
+        )
 
     def forward(self, x1, x2, x3):
-        x2 = F.interpolate(x2, size=x1.size()[2:], mode='bilinear', align_corners=True)
-        x3 = F.interpolate(x3, size=x1.size()[2:], mode='bilinear', align_corners=True)
+        x2 = F.interpolate(x2, size=x1.size()[2:], mode="bilinear", align_corners=True)
+        x3 = F.interpolate(x3, size=x1.size()[2:], mode="bilinear", align_corners=True)
         feat = torch.cat((x1, x2, x3), 1)
 
         b, c, h, w = feat.size()
@@ -318,7 +330,7 @@ class CBAM(nn.Module):
         self.mlp = nn.Sequential(
             nn.Conv2d(channel, channel // reduction, kernel_size=1, bias=False),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channel // reduction, channel, kernel_size=1, bias=False)
+            nn.Conv2d(channel // reduction, channel, kernel_size=1, bias=False),
         )
         self.conv = nn.Conv2d(2, 1, kernel_size=7, stride=1, padding=3, bias=False)
         self.sigmoid = nn.Sigmoid()
@@ -341,7 +353,11 @@ class CBAM(nn.Module):
 class SideoutBlock(nn.Module):
     def __init__(self, in_channels, out_channels, num_slices=4):
         super(SideoutBlock, self).__init__()
-        self.conv1 = nn.Sequential(MMConv(in_channels, in_channels//4, num_slices = num_slices, kernel_size=3), nn.BatchNorm2d(in_channels // 4), nn.ReLU(inplace=True))
+        self.conv1 = nn.Sequential(
+            MMConv(in_channels, in_channels // 4, num_slices=num_slices, kernel_size=3),
+            nn.BatchNorm2d(in_channels // 4),
+            nn.ReLU(inplace=True),
+        )
         self.dropout = nn.Dropout2d(0.1)
         self.conv2 = nn.Conv2d(in_channels // 4, out_channels, kernel_size=1)
 
@@ -351,132 +367,159 @@ class SideoutBlock(nn.Module):
         x = self.conv2(x)
         return x
 
+
 class RCG(nn.Module):
-    def __init__(self, d_state = 16, d_conv = 4, expand = 2, head=4, num_slices=4, step = 1):
+    def __init__(self, d_state=16, d_conv=4, expand=2, head=4, num_slices=4, step=1):
         super(RCG, self).__init__()
         # self.conv1 = nn.Sequential(nn.Conv2d(128, 64, 3, 1, 1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
-        self.conv1 = nn.Sequential(MMConv(128, 64, num_slices=num_slices, kernel_size=3), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
-        
+        self.conv1 = nn.Sequential(
+            MMConv(128, 64, num_slices=num_slices, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
+
         self.upsample = nn.ConvTranspose2d(
-                    in_channels=64,
-                    out_channels=64,
-                    kernel_size=4,
-                    stride=2,
-                    padding=1,           # 常见设置
-                    output_padding=0     # 保持标准尺寸
-                )
-        
+            in_channels=64,
+            out_channels=64,
+            kernel_size=4,
+            stride=2,
+            padding=1,  # 常见设置
+            output_padding=0,  # 保持标准尺寸
+        )
+
         self.downsample = nn.Conv2d(
-            in_channels=64, 
-            out_channels=64, 
-            kernel_size=4, 
-            stride=2, 
-            padding=1
+            in_channels=64, out_channels=64, kernel_size=4, stride=2, padding=1
         )
         self.mamba = Mamba(
-                d_model=64, # Model dimension d_model
-                d_state=d_state,  # SSM state expansion factor
-                d_conv=d_conv,    # Local convolution width
-                expand=expand,    # Block expansion factor
-                # bimamba_type="v1",
-                bimamba_type="v3",   # TODO: set 154 assert bimamba_type=="v3" as none
-                nslices = num_slices
+            d_model=64,  # Model dimension d_model
+            d_state=d_state,  # SSM state expansion factor
+            d_conv=d_conv,  # Local convolution width
+            expand=expand,  # Block expansion factor
+            # bimamba_type="v1",
+            bimamba_type="v3",  # TODO: set 154 assert bimamba_type=="v3" as none
+            nslices=num_slices,
         )
-        
-        self.mlp = nn.Sequential(nn.Conv2d(64, 1, kernel_size=1),
-                                 nn.Sigmoid())
+
+        self.mlp = nn.Sequential(nn.Conv2d(64, 1, kernel_size=1), nn.Sigmoid())
 
     def forward(self, pre, edge, f):
         f_att = torch.sigmoid(pre)
         r_att = -1 * f_att + 1
         r = r_att * f
 
-        edge1 = F.interpolate(edge, size=f.size()[2:], mode='bilinear', align_corners=True)
+        edge1 = F.interpolate(
+            edge, size=f.size()[2:], mode="bilinear", align_corners=True
+        )
         x1 = torch.cat((edge1, r), 1)
         x2 = self.conv1(x1)
-        
+
         ######### Mamba ###########
         x0 = self.upsample(x2)
         B, C, H, W = x0.shape
-        
+
         n_tokens = x0.shape[2:].numel()
         img_dims = x0.shape[2:]
-        
+
         x_flat = x0.reshape(B, C, n_tokens).transpose(-1, -2)
-        
+
         out, q, k, v = self.mamba(x_flat)
-        
+
         out_m = out.transpose(-1, -2).reshape(B, C, *img_dims)
-        
+
         x0 = self.downsample(out_m)
         ######### Mamba ###########
-        
+
         x3 = self.mlp(x2)
-        x4 = x0 * x3 * x2 
+        x4 = x0 * x3 * x2
         output = x4 + f
 
         return output
 
+
 class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, num_slices=4):
         super(DecoderBlock, self).__init__()
-        self.conv1 = nn.Sequential(MMConv(in_channels, in_channels // 4, kernel_size=3, num_slices=num_slices),nn.BatchNorm2d(in_channels // 4),
-                                   nn.ReLU(inplace=True))
-        self.conv2 = nn.Sequential(MMConv(in_channels//4, out_channels, kernel_size=3,num_slices=num_slices), nn.BatchNorm2d(out_channels),nn.ReLU(inplace=True))
+        self.conv1 = nn.Sequential(
+            MMConv(in_channels, in_channels // 4, kernel_size=3, num_slices=num_slices),
+            nn.BatchNorm2d(in_channels // 4),
+            nn.ReLU(inplace=True),
+        )
+        self.conv2 = nn.Sequential(
+            MMConv(
+                in_channels // 4, out_channels, kernel_size=3, num_slices=num_slices
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
 
     def forward(self, x):
         x1 = self.conv1(x)
         x2 = self.conv2(x1)
-        x3 = F.interpolate(x2, scale_factor=2, mode='bilinear', align_corners=True)
+        x3 = F.interpolate(x2, scale_factor=2, mode="bilinear", align_corners=True)
         return x3
 
+
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, num_slices,downsample=False):
+    def __init__(self, in_channels, out_channels, num_slices, downsample=False):
         super(ResidualBlock, self).__init__()
 
         self.downsample = downsample
         if downsample:
             self.block1 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
-            MMConv(out_channels, out_channels, num_slices=num_slices, kernel_size=3),
-            nn.BatchNorm2d(out_channels)
-        )
+                nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    bias=False,
+                ),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True),
+                # nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
+                MMConv(
+                    out_channels, out_channels, num_slices=num_slices, kernel_size=3
+                ),
+                nn.BatchNorm2d(out_channels),
+            )
             self.block2 = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, bias=False),
-                nn.BatchNorm2d(out_channels)
+                nn.Conv2d(
+                    in_channels, out_channels, kernel_size=1, stride=2, bias=False
+                ),
+                nn.BatchNorm2d(out_channels),
             )
         else:
             self.block1 = nn.Sequential(
-            # nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
-            MMConv(in_channels, out_channels, num_slices=num_slices,kernel_size=3),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
-            MMConv(out_channels, out_channels, num_slices=num_slices,kernel_size=3),
-            nn.BatchNorm2d(out_channels)
-        )
+                # nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
+                MMConv(in_channels, out_channels, num_slices=num_slices, kernel_size=3),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True),
+                # nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
+                MMConv(
+                    out_channels, out_channels, num_slices=num_slices, kernel_size=3
+                ),
+                nn.BatchNorm2d(out_channels),
+            )
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x1 = self.block1(x)
-        if  self.downsample:
+        if self.downsample:
             return self.relu(self.block2(x) + x1)
         return self.relu(x1 + x)
-    
-
-
-
 
 
 class MM_Net(nn.Module):
-    def __init__(self, num_classes, num_slices_list = [64, 32, 16, 8],
-                 out_indices=[0, 1, 2, 3], heads=[1, 2, 4, 4]):
+    def __init__(
+        self,
+        num_classes,
+        num_slices_list=[64, 32, 16, 8],
+        out_indices=[0, 1, 2, 3],
+        heads=[1, 2, 4, 4],
+    ):
         super(MM_Net, self).__init__()
         # resnet = models.resnet34(pretrained=True)
-        print('loading pretrained model--MMUNET')
+        print("loading pretrained model--MMUNET")
         # checkpoint_path = "resnet/pytorch_model.bin"
         # resnet.load_state_dict(torch.load(checkpoint_path, weights_only=False))
         # Encoder
@@ -489,24 +532,69 @@ class MM_Net(nn.Module):
         # self.encoder4 = resnet.layer3  # 256
         # self.encoder5 = resnet.layer4  # 512
         # print(self.encoder3, self.encoder4, self.encoder5)
-        self.encoder1 = nn.Sequential(nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True)) 
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
-        self.encoder2 = nn.Sequential(ResidualBlock(64, 64, num_slices=num_slices_list[0]),ResidualBlock(64, 64, num_slices=num_slices_list[0]),ResidualBlock(64, 64, num_slices=num_slices_list[0]))
-        self.encoder3 = nn.Sequential(ResidualBlock(64, 128, downsample=True, num_slices=num_slices_list[1]),ResidualBlock(128, 128, num_slices=num_slices_list[1]),ResidualBlock(128, 128, num_slices=num_slices_list[1]),ResidualBlock(128, 128, num_slices=num_slices_list[1]))
-        self.encoder4 = nn.Sequential(ResidualBlock(128, 256, downsample=True,num_slices=num_slices_list[2]),ResidualBlock(256, 256,num_slices=num_slices_list[2]),ResidualBlock(256, 256,num_slices=num_slices_list[2]),ResidualBlock(256, 256,num_slices=num_slices_list[2]),ResidualBlock(256, 256,num_slices=num_slices_list[2]),ResidualBlock(256, 256,num_slices=num_slices_list[2]))
-        self.encoder5 = nn.Sequential(ResidualBlock(256, 512, downsample=True,num_slices=num_slices_list[3]),ResidualBlock(512, 512,num_slices=num_slices_list[3]),ResidualBlock(512, 512,num_slices=num_slices_list[3]))
+        self.encoder1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
+        self.maxpool = nn.MaxPool2d(
+            kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False
+        )
+        self.encoder2 = nn.Sequential(
+            ResidualBlock(64, 64, num_slices=num_slices_list[0]),
+            ResidualBlock(64, 64, num_slices=num_slices_list[0]),
+            ResidualBlock(64, 64, num_slices=num_slices_list[0]),
+        )
+        self.encoder3 = nn.Sequential(
+            ResidualBlock(64, 128, downsample=True, num_slices=num_slices_list[1]),
+            ResidualBlock(128, 128, num_slices=num_slices_list[1]),
+            ResidualBlock(128, 128, num_slices=num_slices_list[1]),
+            ResidualBlock(128, 128, num_slices=num_slices_list[1]),
+        )
+        self.encoder4 = nn.Sequential(
+            ResidualBlock(128, 256, downsample=True, num_slices=num_slices_list[2]),
+            ResidualBlock(256, 256, num_slices=num_slices_list[2]),
+            ResidualBlock(256, 256, num_slices=num_slices_list[2]),
+            ResidualBlock(256, 256, num_slices=num_slices_list[2]),
+            ResidualBlock(256, 256, num_slices=num_slices_list[2]),
+            ResidualBlock(256, 256, num_slices=num_slices_list[2]),
+        )
+        self.encoder5 = nn.Sequential(
+            ResidualBlock(256, 512, downsample=True, num_slices=num_slices_list[3]),
+            ResidualBlock(512, 512, num_slices=num_slices_list[3]),
+            ResidualBlock(512, 512, num_slices=num_slices_list[3]),
+        )
         # self.down3 = nn.Sequential(nn.Conv2d(128, 64, kernel_size=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
         # self.down4 = nn.Sequential(nn.Conv2d(256, 64, kernel_size=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
         # self.down5 = nn.Sequential(nn.Conv2d(512, 64, kernel_size=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
 
-        self.down3 = nn.Sequential(MMConv(128,64,num_slices=num_slices_list[-1],kernel_size=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
-        self.down4 = nn.Sequential(MMConv(256,64,num_slices=num_slices_list[-1],kernel_size=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
-        self.down5 = nn.Sequential(MMConv(512,64,num_slices=num_slices_list[-1],kernel_size=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
+        self.down3 = nn.Sequential(
+            MMConv(128, 64, num_slices=num_slices_list[-1], kernel_size=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
+        self.down4 = nn.Sequential(
+            MMConv(256, 64, num_slices=num_slices_list[-1], kernel_size=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
+        self.down5 = nn.Sequential(
+            MMConv(512, 64, num_slices=num_slices_list[-1], kernel_size=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
 
         # self.hpp = HPPF(192)
 
-        self.cbam = nn.Sequential(nn.Conv2d(64, 64, 3, 1, 1), nn.BatchNorm2d(64), nn.ReLU(inplace=True),CBAM(64),nn.Conv2d(64, 64, 3, 1, 1), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
-
+        self.cbam = nn.Sequential(
+            nn.Conv2d(64, 64, 3, 1, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            CBAM(64),
+            nn.Conv2d(64, 64, 3, 1, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+        )
 
         self.line_predict = nn.Conv2d(64, 1, 3, 1, 1)
 
@@ -515,15 +603,23 @@ class MM_Net(nn.Module):
         self.side4 = SideoutBlock(64, 1, num_slices=num_slices_list[2])
         self.side5 = SideoutBlock(64, 1, num_slices=num_slices_list[3])
 
-        self.rcg2 = RCG( num_slices=num_slices_list[0], head = heads[0])
-        self.rcg3 = RCG( num_slices=num_slices_list[1], head = heads[1])
-        self.rcg4 = RCG( num_slices=num_slices_list[2], head = heads[2])
+        self.rcg2 = RCG(num_slices=num_slices_list[0], head=heads[0])
+        self.rcg3 = RCG(num_slices=num_slices_list[1], head=heads[1])
+        self.rcg4 = RCG(num_slices=num_slices_list[2], head=heads[2])
 
         # Decoder
-        self.decoder5 = DecoderBlock(in_channels=64, out_channels=64, num_slices=num_slices_list[3])
-        self.decoder4 = DecoderBlock(in_channels=128, out_channels=64, num_slices=num_slices_list[2])
-        self.decoder3 = DecoderBlock(in_channels=128, out_channels=64, num_slices=num_slices_list[1])
-        self.decoder2 = DecoderBlock(in_channels=128, out_channels=64, num_slices=num_slices_list[0])
+        self.decoder5 = DecoderBlock(
+            in_channels=64, out_channels=64, num_slices=num_slices_list[3]
+        )
+        self.decoder4 = DecoderBlock(
+            in_channels=128, out_channels=64, num_slices=num_slices_list[2]
+        )
+        self.decoder3 = DecoderBlock(
+            in_channels=128, out_channels=64, num_slices=num_slices_list[1]
+        )
+        self.decoder2 = DecoderBlock(
+            in_channels=128, out_channels=64, num_slices=num_slices_list[0]
+        )
 
         # self.final = nn.Sequential(nn.Conv2d(64, 32, 3, 1, 1), nn.BatchNorm2d(32), nn.ReLU(inplace=True),
         #                            nn.Dropout2d(0.1),
@@ -574,22 +670,83 @@ class MM_Net(nn.Module):
         out2 = self.side2(d2)
 
         # final_output
-        other_out = F.interpolate(out2, size=x.size()[2:], mode='bilinear', align_corners=True)+ F.interpolate(out3, size=x.size()[2:], mode='bilinear', align_corners=True)+ F.interpolate(out4, size=x.size()[2:], mode='bilinear', align_corners=True)+ F.interpolate(out5, size=x.size()[2:], mode='bilinear', align_corners=True)+ F.interpolate(p_c, size=x.size()[2:], mode='bilinear', align_corners=True)
+        other_out = (
+            F.interpolate(out2, size=x.size()[2:], mode="bilinear", align_corners=True)
+            + F.interpolate(
+                out3, size=x.size()[2:], mode="bilinear", align_corners=True
+            )
+            + F.interpolate(
+                out4, size=x.size()[2:], mode="bilinear", align_corners=True
+            )
+            + F.interpolate(
+                out5, size=x.size()[2:], mode="bilinear", align_corners=True
+            )
+            + F.interpolate(p_c, size=x.size()[2:], mode="bilinear", align_corners=True)
+        )
 
         # p = self.hpp(d2, d3, d4)
         # out1 = self.final(p)
         # out1 = F.interpolate(out1, size=x.size()[2:], mode='bilinear', align_corners=True)
 
-        
         # return out1 + other_out
         return other_out
 
 
-if __name__ == '__main__':
+def benchmark_model(
+    model: nn.Module, input_size=(1, 3, 224, 224), device="cuda", warmup=10, reps=100
+):
+    import time
+    from thop import profile, clever_format
+    from ptflops import get_model_complexity_info
+
+    """
+    计算 PyTorch 模型的 FPS（Frames Per Second）、参数量（MParam）和计算量（GLOPs）
+    :param model: PyTorch nn.Module
+    :param input_size: 输入张量的尺寸 (B, C, H, W)
+    :param device: 'cuda' 或 'cpu'
+    :param warmup: 预热轮数
+    :param reps: 正式测试轮数
+    :return: dict 包含 FPS、MParams、GLOPs
+    """
+    model = model.to(device)
+    model.eval()
+
+    dummy_input = torch.randn(*input_size).to(device)
+
+    # ----------------------- 计算 FLOPs 和 参数量 -----------------------
+    with torch.no_grad():
+        macs, params = profile(model, inputs=(dummy_input,), verbose=False)
+        macs, params = clever_format([macs, params], "%.3f")
+
+    # ----------------------- 计算 FPS -----------------------
+    with torch.no_grad():
+        # 预热
+        for _ in range(warmup):
+            _ = model(dummy_input)
+        torch.cuda.synchronize()
+
+        start = time.time()
+        for _ in range(reps):
+            _ = model(dummy_input)
+        torch.cuda.synchronize()
+        end = time.time()
+
+        fps = reps / (end - start)
+    print({"FPS": round(fps, 2), "Params": params, "GLOPs": macs})
+
+
+if __name__ == "__main__":
     # from thop import profile, clever_format
-    device = 'cuda:0'
-    
+    device = "cuda:0"
+
     x = torch.randn(size=(1, 3, 608, 608)).to(device)
     model = MM_Net(num_classes=1).to(device)
     print(model(x).size())
     print(model(x))
+    benchmark_model(
+        model,
+        input_size=(1, 3, 608, 608),
+        device=device,
+        warmup=10,
+        reps=100,
+    )

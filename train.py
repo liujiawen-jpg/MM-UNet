@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import sys
 from datetime import datetime
 from typing import Dict
@@ -45,7 +45,10 @@ def train_one_epoch(model: torch.nn.Module, loss_functions: Dict[str, torch.nn.m
             log += f'{name}: {current_loss:.4f} '
         val_outputs = post_trans(logits)
         for metric_name in metrics:
-            metrics[metric_name](y_pred=val_outputs, y=image_batch[1])
+            if metric_name =='AUC':
+                metrics[metric_name](val_outputs.view(val_outputs.shape[0], -1), image_batch[1].view(val_outputs.shape[0], -1))
+            else:
+                metrics[metric_name](y_pred=val_outputs, y=image_batch[1])
 
         
         
@@ -176,6 +179,13 @@ if __name__ == '__main__':
         train_loader, val_loader = get_dataloader(config)
         image_size = config.dataset.DRIVE.image_size
         include_background = True
+
+    if config.trainer.dataset_choose == 'STARE':
+        from src.VesselLoader import get_dataloader
+        train_loader, val_loader = get_dataloader(config)
+        image_size = config.dataset.STARE.image_size
+        include_background = True
+
 
     inference = monai.inferers.SlidingWindowInferer(roi_size=ensure_tuple_rep(image_size, 2), overlap=0.5,
                                                     sw_device=accelerator.device, device=accelerator.device)
